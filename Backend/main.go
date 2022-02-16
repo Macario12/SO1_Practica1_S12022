@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 
@@ -17,10 +18,11 @@ import (
 )
 
 type Operacion struct {
-	Numero1   int `json:"numero1"`
-	Numero2   int `json:"numero2"`
-	Signo     int `json:"signo"`
-	Resultado int `json:"resultado"`
+	Numero1   int    `json:"numero1"`
+	Numero2   int    `json:"numero2"`
+	Signo     int    `json:"signo"`
+	Resultado int    `json:"resultado"`
+	Fecha     string `json:"Fecha"`
 }
 
 var usersCollection *mongo.Collection
@@ -75,6 +77,15 @@ func operar(w http.ResponseWriter, r *http.Request) {
 	if req.Signo == 3 {
 		resultado = req.Numero1 / req.Numero2
 	}
+
+	//Fecha
+	t := time.Now()
+	fecha := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+		t.Year(), t.Month(), t.Day(),
+		t.Hour(), t.Minute(), t.Second())
+
+	req.Fecha = fecha
+
 	req.Resultado = resultado
 	// Se inserta en la base de datos
 	result, err := usersCollection.InsertOne(context.TODO(), req)
@@ -82,7 +93,6 @@ func operar(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Println(result.InsertedID)
 	//se devuelve el valor para el front
 	//fmt.Println("Resultado:", resultado)
@@ -111,7 +121,7 @@ func getAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://mongoadmin:123@localhost:27017"))
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://mongoadmin:123@192.168.0.12:27017"))
 	if err != nil {
 		panic(err)
 	}
@@ -124,9 +134,9 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", inicial).Methods("GET")
-	router.HandleFunc("/getAll", getAll).Methods("GET")
+	router.HandleFunc("/getAll", getAll).Methods("GET", "OPTIONS")
 	//metodo post para la operacion
-	router.HandleFunc("/operar", operar).Methods("POST")
+	router.HandleFunc("/operar", operar).Methods("POST", "OPTIONS")
 	//puerto en el que corrre el Servidor.
 	log.Fatal(http.ListenAndServe(":4200", router))
 }

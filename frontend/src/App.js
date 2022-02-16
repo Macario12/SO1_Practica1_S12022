@@ -1,5 +1,4 @@
 import * as React from 'react';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Button from '@mui/material/Button';
@@ -12,7 +11,6 @@ import CalculateIcon from '@mui/icons-material/Calculate';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import MenuItem from '@mui/material/MenuItem';
 import PropTypes from 'prop-types';
-
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -26,20 +24,7 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
-
-function createData(name, calories, fat, carbs, protein) {
-  return { name, calories, fat, carbs, protein };
-}
-
-const rows = [
-  createData('Frozen yoghurt', 159, 6.0, 24, 4.0),
-  createData('Ice cream sandwich', 237, 9.0, 37, 4.3),
-  createData('Eclair', 262, 16.0, 24, 6.0),
-  createData('Cupcake', 305, 3.7, 67, 4.3),
-  createData('Gingerbread', 356, 16.0, 49, 3.9),
-];
-
-
+let rows = [];
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -67,49 +52,64 @@ TabPanel.propTypes = {
   value: PropTypes.number.isRequired,
 };
 
+function parseSigno(signo){
+  let s = ""
+  if(signo === 0){
+    s = "+"
+  }else if(signo === 1){
+    s = "-"
+  }else if(signo === 2){
+    s = "*"
+  }else if(signo === 3){
+    s = "/"
+  }
+  return s
+}
+
 export default function App() {
-  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+  getAll()
   const [signo, setSigno] = React.useState('suma');
 
   const [num1, setNum1] = React.useState(0);
   const [num2, setNum2] = React.useState(0);
 
   const [resultado, setResultado] = React.useState(0);
-  const [respuesta, setRespuesta] = React.useState("");
 
-  function operarResultado() {
-    let jsonCodigo = JSON.stringify({numero1:num1,numero2:num2,signo:signo,resultado:0})
-    console.log(jsonCodigo)
-  
+  async function operarResultado() {
+    let jsonCodigo = JSON.stringify({numero1:parseInt(num1),numero2:parseInt(num2),signo:signo,resultado:0,fecha:""})
       const requestOptions = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: jsonCodigo
     };
-    fetch('http://localhost:4200/operar', requestOptions)
-        .then(response => response.json())
-        .then(data => setRespuesta(data))
-  
-        setResultado(respuesta.Resultado)
+     var respuesta = await fetch('http://localhost:4200/operar', requestOptions)
+     var response = await respuesta.json()
+
+     setResultado(response.resultado)
   }
   
+  async function getAll() {
+      const requestOptions = {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+    };
+     var respuesta = await fetch('http://localhost:4200/getAll', requestOptions)
+     var response = await respuesta.json()
 
+     rows = response
+  }
 
-  
-  const theme = React.useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: prefersDarkMode ? 'dark' : 'light',
-        },
-      }),
-    [prefersDarkMode],
-  );
-
+  const darkTheme = createTheme({
+    palette: {
+      mode: 'dark',
+    },
+  });
   const [value, setValue] = React.useState(0);
 
   const handleChange = (event, newValue) => {
+    
     setValue(newValue);
+    getAll()
   };
 
   const selectsigno = (event, newValue) => {
@@ -124,14 +124,8 @@ export default function App() {
     setNum2(event.target.value);
   };
 
-  const opera = (event, newValue) => {
-    operarResultado()
-    console.log(num1+num2)
-  };
-
-
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Tabs value={value} onChange={handleChange} aria-label="icon tabs example"centered>
       <Tab icon={<CalculateIcon />} aria-label="calculate">
@@ -187,29 +181,27 @@ export default function App() {
         </div>
 
         <div>
-        <Button variant="outlined"  size="large" onClick={opera}>Operar</Button>
+        <Button variant="outlined"  size="large" onClick={operarResultado}>Operar</Button>
         </div>
         <div>
         <Alert severity="success">
           <AlertTitle>Resultado</AlertTitle>
-          —- <strong>{resultado}</strong>
+           <strong>{resultado}</strong>
         </Alert>
         </div>
        </Box>
     </TabPanel>
-
-
 
     <TabPanel value={value} index={1}>
     <TableContainer component={Paper}>
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
         <TableHead>
           <TableRow>
-            <TableCell>Dessert (100g serving)</TableCell>
-            <TableCell align="right">Calories</TableCell>
-            <TableCell align="right">Fat&nbsp;(g)</TableCell>
-            <TableCell align="right">Carbs&nbsp;(g)</TableCell>
-            <TableCell align="right">Protein&nbsp;(g)</TableCell>
+            <TableCell>Fecha</TableCell>
+            <TableCell align="right">Numero 1</TableCell>
+            <TableCell align="right">Signo</TableCell>
+            <TableCell align="right">Numero 2</TableCell>
+            <TableCell align="right">Resultado</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -219,12 +211,12 @@ export default function App() {
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
               <TableCell component="th" scope="row">
-                {row.name}
+                {row.fecha}
               </TableCell>
-              <TableCell align="right">{row.calories}</TableCell>
-              <TableCell align="right">{row.fat}</TableCell>
-              <TableCell align="right">{row.carbs}</TableCell>
-              <TableCell align="right">{row.protein}</TableCell>
+              <TableCell align="right">{row.numero1}</TableCell>
+              <TableCell align="right">{parseSigno(row.signo)}</TableCell>
+              <TableCell align="right">{row.numero2}</TableCell>
+              <TableCell align="right">{row.resultado}</TableCell>
             </TableRow>
           ))}
         </TableBody>
