@@ -24,6 +24,8 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
+
+import axios from 'axios';
 let rows = [];
 
 function TabPanel(props) {
@@ -77,16 +79,26 @@ export default function App() {
 
   async function operarResultado() {
     let jsonCodigo = JSON.stringify({numero1:parseInt(num1),numero2:parseInt(num2),signo:signo,resultado:0,fecha:""})
-      const requestOptions = {
+      /*const requestOptions = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: jsonCodigo
     };
      var respuesta = await fetch('http://localhost:4200/operar', requestOptions)
-     var response = await respuesta.json()
+     var response = await respuesta.json()*/
 
-     setResultado(response.resultado)
+     await axios.post('http://localhost:4200/operar', jsonCodigo)
+    .then(function (response) {
+      setResultado(response.data.resultado);
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+
+     //setResultado(response.resultado)
   }
+
+  
   
   async function getAll() {
       const requestOptions = {
